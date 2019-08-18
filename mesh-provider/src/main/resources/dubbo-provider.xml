@@ -10,5 +10,5 @@
     <dubbo:provider server="netty4" />
 
     <bean id="helloService" class="com.alibaba.dubbo.performance.demo.provider.HelloService"/>
-    <dubbo:service interface="com.alibaba.dubbo.performance.demo.provider.IHelloService" ref="helloService"/>
+    <dubbo:service serialization="fastjson" interface="com.alibaba.dubbo.performance.demo.provider.IHelloService" ref="helloService"/>
 </beans>
