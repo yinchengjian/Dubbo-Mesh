@@ -81,7 +81,7 @@ public class HelloController {
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
             byte[] bytes = response.body().bytes();
-            String s = new String(bytes);
+            String s = new String(bytes).trim();
             return Integer.valueOf(s);
         }
     }
