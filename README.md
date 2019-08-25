@@ -191,9 +191,88 @@ Consumer 发送给 Consumer Agent 的 HTTP POST 请求格式如下：
 5. 不限制使用第三方应用服务器，如 Tomcat、Nginx 或 Envoy 等，但不可以使用现成的 Service Mesh 解决方案
 6. 可以参考第三方实现，借用其思想和少量代码，但不可以全盘复制
 
-## 三、评测
+## 三、本地环境搭建
 
-### 3.1、评测环境
+### 3.1、搭建思路
+
+- 安装windows版的etcd
+- 启动6个项目，分别是1个consumer，1个provider，1个consumer-agent，3个provider-agent（small，middle，large）
+- postman测试项目是否跑通
+- 使用wrk模拟官方的四轮压测
+
+### 3.2、windows版etcd安装
+
+直接去<https://github.com/coreos/etcd/releases>下载解压即可，解压完之后有两个可执行文件ectd和etcdctl
+
+ectd是启动etcd服务的，etcdctl是用来执行相应命令（增删查改）。这里唯一需要注意的就是需要配置一个环境变量：ETCDCTL_API=3。因为我们项目里使用的是API=3
+
+### 3.3、项目启动参数
+
+下面是关于agent的启动参数，都是由项目代码里mesh-agent来实现的
+
+|                       | JVM启动参数                                                  |
+| --------------------- | :----------------------------------------------------------- |
+| consumer_agent        | -Xms1536M -Xmx1536M -Dtype=consumer -Dserver.port=20000 -Detcd.url=http://127.0.0.1:2379 |
+| small_provider_agent  | -Xms512M -Xmx512M  -Dtype=provider  -Dserver.port=30000  -Ddubbo.protocol.port=20889  -Detcd.url=http://127.0.0.1:2379 |
+| medium_provider_agent | -Xms1536M -Xmx1536M -Dtype=provider -Dserver.port=30001 -Ddubbo.protocol.port=20890 -Detcd.url=http://127.0.0.1:2379 |
+| large_provider_agent  | -Xms2560M  -Xmx2560M -Dtype=provider -Dserver.port=30002 -Ddubbo.protocol.port=20891 -Detcd.url=http://127.0.0.1:2379 |
+
+下面是关于provider和consumer的启动参数，分别对应项目代码里的mesh-provider和mesh-consumer
+
+|          | JVM启动参数                                                  |
+| -------- | :----------------------------------------------------------- |
+| consumer | -Xms1G<br/>-Xmx1G<br/> -Dlogs.dir=./consumer_logs>           |
+| provider | -Xms1G<br/>-Xmx1G<br/>-Ddubbo.protocol.port=20889<br/>-Ddubbo.application.qos.enable=false<br/>-Dlogs.dir=./small_logs> |
+
+### 3.4、postman测试
+
+postman安装在这就不讲了，consumer是整个调用的开始，官方给出的consumer实例入口是
+
+```http
+http://localhost:8087/invoke    GET
+```
+
+ 正确的返回结果为OK，如果不是OK，请自行调试
+
+### 3.5、wrk压测
+
+wrk没有windows版本，所以需要在linux系统上安装，并且把项目下的wrk.lua放到linux任意目录下，在当前目录执行如下命令进行4轮压测（命令行中的ip是我的本地ip，需要改为项目运行的ip）：
+
+第一轮：
+
+```shell
+wrk -t2 -c512 -d30s -T5 \
+        --script=./wrk.lua \
+        --latency http://127.0.0.1:8087/invoke
+```
+
+第二轮：
+
+```shell
+wrk -t2 -c128 -d60s -T5 \
+        --script=./wrk.lua \
+        --latency http://127.0.0.1:8087/invoke
+```
+
+第三轮：
+
+```shell
+wrk -t2 -c256 -d60s -T5 \
+        --script=./wrk.lua \
+        --latency http://127.0.0.1:8087/invoke
+```
+
+第四轮：
+
+```shell
+wrk -t2 -c512 -d60s -T5 \
+        --script=./wrk.lua \
+        --latency http://192.168.3.12:8087/invoke
+```
+
+## 四、评测
+
+### 4.1、评测环境
 
 每一组评测环境由三台主机构成，如下图所示：
 
@@ -213,39 +292,39 @@ Benchmarker 会通过调度程序不断运行，每次运行都会执行一个�
 
 这样做的好处是，只要获取到施压机的主机名，就可以方便的通过添加 shuke 或者 beita 的前缀找到指定的被压机。
 
-### 3.2、评测环境搭建
+### 4.2、评测环境搭建
 
 请参考 benchmarker 项目的 [README](https://code.aliyun.com/middlewarerace2018/benchmarker)。
 
-## 四、常见问题
+## 五、常见问题
 
-### 4.1、评测环境的操作系统内核版本是多少？
+### 5.1、评测环境的操作系统内核版本是多少？
 
 ```bash
 $ uname -r
 3.10.0-327.ali2015.alios7.x86_64
 ```
 
-### 4.2、评测环境的 Docker 版本是多少？
+### 5.2、评测环境的 Docker 版本是多少？
 
 ```bash
 $ docker --version
 Docker version 1.12.6, build 69e6d1b BUILDTIME:2018-03-27 19:57:15
 ```
 
-### 4.3、是否可以使用其他版本的 JDK 或者是自行编译的 JDK？
+### 5.3、是否可以使用其他版本的 JDK 或者是自行编译的 JDK？
 
 原则上对此行为不做限制，但是需要确保启动 Consumer 和 Provider 服务所使用的 JDK 不受影响。也就是说，如果要使用其他版本的 JDK 或自行编译的 JDK，就要安装两个版本：一个是原来的版本，用来启动 Consumer 和 Provider，另外一个用来启动 Agent。
 
-### 4.4、是否可以调整 Consumer 和 Provider 的启动参数？
+### 5.4、是否可以调整 Consumer 和 Provider 的启动参数？
 
 不可以。主要原因是确保所有参赛团队的运行环境是公平的。
 
-### 4.5、是否可以使用第三方依赖？
+### 5.5、是否可以使用第三方依赖？
 
 可以使用像 Netty, Vert.x, Boost 等第三方依赖，但不可以使用具有 Service Mesh 功能的依赖库。
 
-### 4.6、是否可以调整操作系统参数？
+### 5.6、是否可以调整操作系统参数？
 
 评测环境启动 Docker 实例的时候是以非 `privileged` 模式启动的，因此不能对操作系统的参数进行调整。评测环境的有关系统参数如下：
 
@@ -269,23 +348,23 @@ net.ipv4.tcp_wmem = 4096 277750 134217728
 net.ipv4.ip_local_port_range=1025 65535
 ```
 
-### 4.7、评测环境使用的 Etcd 版本是多少？协议版本是多少？
+### 5.7、评测环境使用的 Etcd 版本是多少？协议版本是多少？
 
 评测环境使用的 Etcd 版本为 [3.3.4](https://github.com/coreos/etcd/releases/tag/v3.3.4)，协议版本是 v3。
 
 切换 `etcdctl` 命令默认使用的协议版本的方法，请参考[这里](https://coreos.com/etcd/docs/latest/dev-guide/interacting_v3.html)。
 
-### 4.8、镜像仓库的地址为什么在浏览器中打不开？
+### 5.8、镜像仓库的地址为什么在浏览器中打不开？
 
 镜像仓库的地址不是用来在浏览器上进行访问的，而是用来拉取镜像的。
 
-### 4.9、Mock Server 是做什么用的？
+### 5.9、Mock Server 是做什么用的？
 
 在正式的评测环境上，评测任务是从天池系统获得的。但是在测试环境上，选手们无法连接到天池系统获取数据，因此提供了这个 Mock Server 用来模拟天池返回的数据。Mock Server 是个非常小的程序，跟施压机跑在一起就可以了。
 
 使用 Mock Server 获取数据时，需要将 `bootstrap.conf` 文件中的 `Host` 参数修改为 `http://localhost:3000`，`TaskFetchPath` 参数修改为 `/`。
 
-### 4.10、服务总是起不来该怎么办？
+### 5.10、服务总是起不来该怎么办？
 
 服务起不来，在 Benchmarker 脚本的日志里面主要体现在端口连接不上，使用 `docker ps` 命令查看 Docker 实例的时候，发现实例启动后马上就退出了，而且也没有任何有意义的服务日志生成。造成实例启动后马上退出的原因是这样的：Consumer 或 Provider 容器启动的时候，会先执行 `docker-entrypoint.sh` 脚本，在这个脚本里面会以 `nohup` 的形式在后台启动服务，之后 `docker-entrypoint.sh` 脚本会调用 `start-agent.sh` 脚本，在这个脚本里面以前台模式启动 agent。这样的话如果 agent 启动失败，就没有前台程序驻留运行，导致 Docker 实例立即退出。
 
@@ -303,17 +382,17 @@ $ docker run -it --entrypoint="" <imagepath> bash
 
 Benchmarker 脚本里面检查服务是否启动的方法是：尝试连接服务所暴露的端口，如果能够成功连接则认为服务启动成功。而如果连接不上会等待 5s 钟以后重试，尝试 10 次如果仍然无法连接到端口，则认为服务启动失败。那么因为每个服务所占用的系统资源是不同的，在性能比较差的宿主机上，确实有可能出现服务用时 50s 都没有起来的情况，此时可以酌情修改脚本，增加重试次数。
 
-### 4.11、本地构建镜像的时候报告类似这样的错误 `Error parsing reference: "registry.cn-hangzhou.aliyuncs.com/aliware2018/services AS builder" is not a valid repository/tag: invalid reference format` 怎么办？
+### 5.11、本地构建镜像的时候报告类似这样的错误 `Error parsing reference: "registry.cn-hangzhou.aliyuncs.com/aliware2018/services AS builder" is not a valid repository/tag: invalid reference format` 怎么办？
 
 Docker 版本过低，不支持 `FROM ... AS ...` 语法，请升级 Docker 到最新版。
 
-### 4.12、测试环境签名检查不通过怎么办？
+### 5.12、测试环境签名检查不通过怎么办？
 
 打开 `workflow.py` 文件，找到 `run` 方法，注释掉里面的 `self.____check_signatures()` 方法调用即可。
 
 在测试环境下可以不用校验签名，在正式跑分时会强制校验 `/root/dists/mesh-consumer.jar`、`/root/dists/mesh-provider.jar` 和 `/usr/local/bin/docker-entrypoint.sh` 三个文件的签名，以防止其被修改，影响评测的公平性。
 
-### 4.13、正式环境签名检查不通过怎么办？
+### 5.13、正式环境签名检查不通过怎么办？
 
 需要保证 `mesh-consumer.jar`、`mesh-provider.jar` 和 `docker-entrypoint.sh` 三个文件是从 services 镜像中复制过来的，而不是自己在本地构建以后再 push 到镜像仓库中去的。后者相当于重新生成了这些 jar 包，会导致 sha256 哈希值发生变化。
 
@@ -327,7 +406,7 @@ $ sha256sum /usr/local/bin/docker-entrypoint.sh
 
 然后将结果发送给群里面的支持同学，跟评测环境中的内容做个对比。
 
-### 4.14、评测结束以后如何下载日志？
+### 5.14、评测结束以后如何下载日志？
 
 日志下载地址：
 
@@ -339,7 +418,7 @@ https://middlewarerace2018.oss-cn-hangzhou.aliyuncs.com/{teamId}/{taskId}/logs.t
 
 **注：日志在 OSS 上保存 3 天。 **
 
-### 4.15、如何提交评测任务
+### 5.15、如何提交评测任务
 
 首先，点击菜单栏左侧的“提交结果”菜单项，在右边的界面中，点击文本框中的“修改地址”连接。
 
