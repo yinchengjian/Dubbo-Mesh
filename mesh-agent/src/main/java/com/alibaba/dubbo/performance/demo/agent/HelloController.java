@@ -1,6 +1,8 @@
 package com.alibaba.dubbo.performance.demo.agent;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.RpcClient;
+import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
+import com.alibaba.dubbo.performance.demo.agent.loadbalance.PriorityLoadBalance;
 import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.registry.EtcdRegistry;
 import com.alibaba.dubbo.performance.demo.agent.registry.IRegistry;
@@ -19,12 +21,12 @@ import java.util.Random;
 public class HelloController {
 
     private Logger logger = LoggerFactory.getLogger(HelloController.class);
-    
+
     private IRegistry registry = new EtcdRegistry(System.getProperty("etcd.url"));
 
     private RpcClient rpcClient = new RpcClient(registry);
-    private Random random = new Random();
     private List<Endpoint> endpoints = null;
+    private LoadBalance loadBalance = new PriorityLoadBalance();
     private Object lock = new Object();
     private OkHttpClient httpClient = new OkHttpClient();
 
@@ -57,12 +59,13 @@ public class HelloController {
             synchronized (lock){
                 if (null == endpoints){
                     endpoints = registry.find("com.alibaba.dubbo.performance.demo.provider.IHelloService");
+                    loadBalance.initEndpoints(endpoints);
                 }
             }
         }
 
         // 简单的负载均衡，随机取一个
-        Endpoint endpoint = endpoints.get(random.nextInt(endpoints.size()));
+        Endpoint endpoint = loadBalance.select();
 
         String url =  "http://" + endpoint.getHost() + ":" + endpoint.getPort();
 

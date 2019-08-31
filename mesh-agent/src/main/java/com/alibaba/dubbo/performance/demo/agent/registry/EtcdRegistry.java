@@ -43,7 +43,8 @@ public class EtcdRegistry implements IRegistry{
             // 如果是provider，去etcd注册服务
             try {
                 int port = Integer.valueOf(System.getProperty("server.port"));
-                register("com.alibaba.dubbo.performance.demo.provider.IHelloService",port);
+                int weight = Integer.valueOf(System.getProperty("server.weight"));
+                register("com.alibaba.dubbo.performance.demo.provider.IHelloService",port,weight);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -51,11 +52,11 @@ public class EtcdRegistry implements IRegistry{
     }
 
     // 向ETCD中注册服务
-    public void register(String serviceName,int port) throws Exception {
+    public void register(String serviceName,int port,int weight) throws Exception {
         // 服务注册的key为:    /dubbomesh/com.some.package.IHelloService/192.168.100.100:2000
         String strKey = MessageFormat.format("/{0}/{1}/{2}:{3}",rootPath,serviceName,IpHelper.getHostIp(),String.valueOf(port));
         ByteSequence key = ByteSequence.fromString(strKey);
-        ByteSequence val = ByteSequence.fromString("");     // 目前只需要创建这个key,对应的value暂不使用,先留空
+        ByteSequence val = ByteSequence.fromString(String.valueOf(weight));     // 目前只需要创建这个key,对应的value暂不使用,先留空
         kv.put(key,val, PutOption.newBuilder().withLeaseId(leaseId).build()).get();
         logger.info("Register a new service at:" + strKey);
     }
@@ -89,7 +90,9 @@ public class EtcdRegistry implements IRegistry{
             String host = endpointStr.split(":")[0];
             int port = Integer.valueOf(endpointStr.split(":")[1]);
 
-            endpoints.add(new Endpoint(host,port));
+            String value = kv.getValue().toStringUtf8();
+            int weight = Integer.valueOf(value);
+            endpoints.add(new Endpoint(host,port,weight));
         }
         return endpoints;
     }
