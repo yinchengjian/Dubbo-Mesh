@@ -267,7 +267,7 @@ wrk -t2 -c256 -d60s -T5 \
 ```shell
 wrk -t2 -c512 -d60s -T5 \
         --script=./wrk.lua \
-        --latency http://192.168.3.12:8087/invoke
+        --latency http://127.0.0.1:8087/invoke
 ```
 
 ## 四、评测
