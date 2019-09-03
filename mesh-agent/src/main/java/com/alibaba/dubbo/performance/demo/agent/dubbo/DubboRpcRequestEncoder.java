@@ -4,7 +4,6 @@ import com.alibaba.dubbo.performance.demo.agent.dubbo.model.Bytes;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.JsonUtils;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.Request;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcInvocation;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -14,7 +13,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-public class DubboRpcEncoder extends MessageToByteEncoder{
+public class DubboRpcRequestEncoder extends MessageToByteEncoder {
     // header length.
     protected static final int HEADER_LENGTH = 16;
     // magic header.
