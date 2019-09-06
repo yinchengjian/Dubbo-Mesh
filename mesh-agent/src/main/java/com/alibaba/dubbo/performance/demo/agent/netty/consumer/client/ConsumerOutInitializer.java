@@ -4,7 +4,7 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.consumer;
+package com.alibaba.dubbo.performance.demo.agent.netty.consumer.client;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcRequestEncoder;
 import io.netty.channel.Channel;

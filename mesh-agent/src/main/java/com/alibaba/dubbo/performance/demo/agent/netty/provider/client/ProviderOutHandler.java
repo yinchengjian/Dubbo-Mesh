@@ -4,7 +4,7 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.provider;
+package com.alibaba.dubbo.performance.demo.agent.netty.provider.client;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcResponse;
 import io.netty.buffer.ByteBuf;

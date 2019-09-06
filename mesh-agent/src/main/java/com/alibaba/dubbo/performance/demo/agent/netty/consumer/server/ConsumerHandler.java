@@ -4,20 +4,18 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.consumer;
+package com.alibaba.dubbo.performance.demo.agent.netty.consumer.server;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.JsonUtils;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.Request;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcInvocation;
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
+import com.alibaba.dubbo.performance.demo.agent.netty.consumer.client.ConsumerClient;
 import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.util.RequestParser;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.FullHttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +32,7 @@ public class ConsumerHandler extends ChannelInboundHandlerAdapter {
 
     private final Logger logger = LoggerFactory.getLogger(ConsumerHandler.class);
 
-    private Channel clientChannel;
+    private ChannelFuture clientChannelFuture;
 
     private final LoadBalance loadBalance;
 
@@ -42,43 +40,30 @@ public class ConsumerHandler extends ChannelInboundHandlerAdapter {
         this.loadBalance = loadBalance;
     }
 
-
     @Override
-    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-
-
+    public void channelActive(final ChannelHandlerContext ctx) {
+        final ConsumerClient consumerClient = new ConsumerClient(ctx.channel());
+        final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
+        consumerClient.connect(endpoint);
+        clientChannelFuture = consumerClient.getChannelFuture();
     }
 
-    /**
-     * 从consumer传递过来的数据
-     *
-     * @param ctx
-     * @param msg
-     * @throws Exception
-     */
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
         final Request request = transform((FullHttpRequest) msg);
-        final Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(ctx.channel().eventLoop())
-                .channel(NioSocketChannel.class)
-                .handler(new ConsumerOutInitializer(ctx.channel()));
         //provider agent 返回数据
-        final Endpoint endpoint = loadBalance.select();
-        final ChannelFuture connectFuture = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
-        clientChannel = connectFuture.channel();
-        connectFuture.addListener(future -> {
+        clientChannelFuture.addListener(future -> {
             if (future.isSuccess()) {
-                System.out.println("成功连接到provider-agent");
-                clientChannel.writeAndFlush(request).addListener(futures -> {
+                clientChannelFuture.channel().writeAndFlush(request).addListener(futures -> {
                     if (futures.isSuccess()) {
-                        System.out.println("consumer data sended successfully");
+                        logger.info("consumer data sended successfully");
                     } else {
                         futures.cause().printStackTrace();
                     }
                 });
             } else {
-                System.out.println("连接失败");
+                logger.error("连接provider-agent失败！！！");
+                future.cause().printStackTrace();
             }
         });
     }
@@ -103,7 +88,7 @@ public class ConsumerHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
+    public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
         cause.printStackTrace();
         ctx.close();
     }

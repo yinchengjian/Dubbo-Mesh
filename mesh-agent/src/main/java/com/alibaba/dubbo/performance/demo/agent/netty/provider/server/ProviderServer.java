@@ -4,8 +4,10 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.provider;
+package com.alibaba.dubbo.performance.demo.agent.netty.provider.server;
 
+import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
+import com.alibaba.dubbo.performance.demo.agent.loadbalance.PriorityLoadBalance;
 import com.alibaba.dubbo.performance.demo.agent.registry.EtcdRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -28,6 +30,7 @@ public class ProviderServer {
 
     private final EventLoopGroup workerEventLoop = new NioEventLoopGroup(4);
 
+    private final LoadBalance loadBalance = new PriorityLoadBalance();
 
     public void start() {
         new EtcdRegistry(System.getProperty("etcd.url"));
@@ -39,7 +42,7 @@ public class ProviderServer {
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                    .childHandler(new ProviderInitializer());
+                    .childHandler(new ProviderInitializer(loadBalance));
             final Channel channel = serverBootstrap.bind().sync().channel();
             channel.closeFuture().sync();
         } catch (final Exception e) {

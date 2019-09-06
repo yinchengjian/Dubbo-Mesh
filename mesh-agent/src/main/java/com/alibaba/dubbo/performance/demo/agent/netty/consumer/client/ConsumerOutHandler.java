@@ -4,7 +4,7 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.consumer;
+package com.alibaba.dubbo.performance.demo.agent.netty.consumer.client;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -48,12 +48,11 @@ public class ConsumerOutHandler extends SimpleChannelInboundHandler<Object> {
         response.headers().set(CONNECTION, KEEP_ALIVE);
         serverChannel.writeAndFlush(response).addListener(future -> {
             if (future.isSuccess()) {
-                System.out.println("consumer data sended successfully---ConsumerOutHandler");
+                logger.info("consumer data sended successfully---ConsumerOutHandler");
             } else {
                 future.cause().printStackTrace();
             }
         });
-        logger.info("consumer server msg response has send");
     }
 
     @Override

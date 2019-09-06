@@ -4,7 +4,7 @@
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
 
-package com.alibaba.dubbo.performance.demo.agent.provider;
+package com.alibaba.dubbo.performance.demo.agent.netty.provider.client;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcRequestEncoder;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcResponseDecoder;
@@ -12,6 +12,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 /**
  * @author xinba
