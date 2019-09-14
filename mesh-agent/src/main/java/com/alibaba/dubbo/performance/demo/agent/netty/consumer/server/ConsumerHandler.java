@@ -11,12 +11,14 @@ import com.alibaba.dubbo.performance.demo.agent.dubbo.model.Request;
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcInvocation;
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
 import com.alibaba.dubbo.performance.demo.agent.netty.consumer.client.ConsumerClient;
-import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.util.RequestParser;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.util.collection.LongObjectHashMap;
+import io.netty.util.concurrent.FastThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,15 +26,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author xinba
  */
-public class ConsumerHandler extends ChannelInboundHandlerAdapter {
+public class ConsumerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final Logger logger = LoggerFactory.getLogger(ConsumerHandler.class);
 
-    private ChannelFuture clientChannelFuture;
+    public static final FastThreadLocal<LongObjectHashMap<Channel>> channels = new FastThreadLocal<LongObjectHashMap<Channel>>() {
+        @Override
+        protected LongObjectHashMap<Channel> initialValue() throws Exception {
+            return new LongObjectHashMap<>();
+        }
+    };
+
+    public static AtomicLong requestIdGenerator = new AtomicLong(0);
+
 
     private final LoadBalance loadBalance;
 
@@ -42,21 +53,25 @@ public class ConsumerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) {
-        final ConsumerClient consumerClient = new ConsumerClient(ctx.channel());
-        final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
-        consumerClient.connect(endpoint);
-        clientChannelFuture = consumerClient.getChannelFuture();
+        //todo 解决DUBBO Thread pool is EXHAUSTED!问题
+//        final ConsumerClient consumerClient = new ConsumerClient(ctx.channel());
+//        final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
+//        consumerClient.connect(endpoint);
+//        clientChannelFuture = consumerClient.getChannelFuture();
     }
 
     @Override
-    public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
-        final Request request = transform((FullHttpRequest) msg);
+    public void channelRead0(final ChannelHandlerContext ctx, final FullHttpRequest msg) throws Exception {
+        final Request request = transform(msg);
+
+        channels.get().put(request.getId(), ctx.channel());
         //provider agent 返回数据
+        final ChannelFuture clientChannelFuture = ConsumerClient.map.get(ctx.executor().toString());
         clientChannelFuture.addListener(future -> {
             if (future.isSuccess()) {
                 clientChannelFuture.channel().writeAndFlush(request).addListener(futures -> {
                     if (futures.isSuccess()) {
-                        logger.info("consumer data sended successfully");
+                        logger.info("ConsumerClient---consumer data send successfully");
                     } else {
                         futures.cause().printStackTrace();
                     }
@@ -81,6 +96,7 @@ public class ConsumerHandler extends ChannelInboundHandlerAdapter {
         invocation.setArguments(out.toByteArray());
 
         final Request request = new Request();
+        request.setId(requestIdGenerator.incrementAndGet());
         request.setVersion("2.0.0");
         request.setTwoWay(true);
         request.setData(invocation);

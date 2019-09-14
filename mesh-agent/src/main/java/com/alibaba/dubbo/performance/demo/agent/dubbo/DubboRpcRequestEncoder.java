@@ -1,3 +1,9 @@
+/*
+ * DubboRpcRequestEncoder.java
+ * Copyright 2019 Qunhe Tech, all rights reserved.
+ * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
+ */
+
 package com.alibaba.dubbo.performance.demo.agent.dubbo;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.model.Bytes;
@@ -7,6 +13,8 @@ import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcInvocation;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
@@ -14,6 +22,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 public class DubboRpcRequestEncoder extends MessageToByteEncoder {
+
+    private final Logger logger = LoggerFactory.getLogger(DubboRpcRequestEncoder.class);
     // header length.
     protected static final int HEADER_LENGTH = 16;
     // magic header.
@@ -24,11 +34,11 @@ public class DubboRpcRequestEncoder extends MessageToByteEncoder {
     protected static final byte FLAG_EVENT = (byte) 0x20;
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf buffer) throws Exception {
-        Request req = (Request)msg;
+    protected void encode(final ChannelHandlerContext ctx, final Object msg, final ByteBuf buffer) throws Exception {
+        final Request req = (Request) msg;
 
         // header.
-        byte[] header = new byte[HEADER_LENGTH];
+        final byte[] header = new byte[HEADER_LENGTH];
         // set magic number.
         Bytes.short2bytes(MAGIC, header);
 
@@ -42,25 +52,27 @@ public class DubboRpcRequestEncoder extends MessageToByteEncoder {
         Bytes.long2bytes(req.getId(), header, 4);
 
         // encode request data.
-        int savedWriteIndex = buffer.writerIndex();
+        final int savedWriteIndex = buffer.writerIndex();
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         encodeRequestData(bos, req.getData());
 
-        int len = bos.size();
+        final int len = bos.size();
         buffer.writeBytes(bos.toByteArray());
         Bytes.int2bytes(len, header, 12);
 
         // write
         buffer.writerIndex(savedWriteIndex);
         buffer.writeBytes(header); // write header.
+        System.err.println(ctx.executor().toString());
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);
+        logger.info("request:{}", req);
     }
 
-    public void encodeRequestData(OutputStream out, Object data) throws Exception {
-        RpcInvocation inv = (RpcInvocation)data;
+    public void encodeRequestData(final OutputStream out, final Object data) throws Exception {
+        final RpcInvocation inv = (RpcInvocation) data;
 
-        PrintWriter writer = new PrintWriter(new OutputStreamWriter(out));
+        final PrintWriter writer = new PrintWriter(new OutputStreamWriter(out));
 
         JsonUtils.writeObject(inv.getAttachment("dubbo", "2.0.1"), writer);
         JsonUtils.writeObject(inv.getAttachment("path"), writer);

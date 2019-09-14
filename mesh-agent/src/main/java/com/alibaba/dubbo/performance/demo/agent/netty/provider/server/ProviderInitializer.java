@@ -7,6 +7,7 @@
 package com.alibaba.dubbo.performance.demo.agent.netty.provider.server;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcRequestDecoder;
+import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcResponseEncoder;
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -27,6 +28,8 @@ public class ProviderInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(final SocketChannel ch) throws Exception {
         final ChannelPipeline pipeline = ch.pipeline();
+        //出站
+        pipeline.addLast(new DubboRpcResponseEncoder());
         //rpcRequest入站要解密
         pipeline.addLast(new DubboRpcRequestDecoder());
         pipeline.addLast(new ProviderHandler(loadBalance));

@@ -12,6 +12,8 @@ import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcInvocation;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +22,8 @@ import java.util.List;
  * @author xinba
  */
 public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
+
+    private final Logger logger = LoggerFactory.getLogger(DubboRpcRequestDecoder.class);
 
     // header length.
     protected static final int HEADER_LENGTH = 16;
@@ -38,10 +42,15 @@ public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
                 final int savedReaderIndex = in.readerIndex();
                 Object msg = null;
                 try {
+                    System.err.println(ctx.channel().remoteAddress());
                     msg = decode2(in);
                 } catch (final Exception e) {
                     System.err.println("decode error.");
                     throw e;
+                }
+                if (msg == DubboRpcResponseDecoder.DecodeResult.NEED_MORE_INPUT) {
+                    in.readerIndex(savedReaderIndex);
+                    break;
                 }
 
                 out.add(msg);
@@ -54,10 +63,20 @@ public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
     }
 
     private Object decode2(final ByteBuf byteBuf) {
+
+        final int readable = byteBuf.readableBytes();
         final Request request = new Request();
         final byte[] header = new byte[HEADER_LENGTH];
+        if (readable < HEADER_LENGTH) {
+            return DubboRpcResponseDecoder.DecodeResult.NEED_MORE_INPUT;
+        }
         byteBuf.readBytes(header);
+        final long requestId = Bytes.bytes2long(header, 4);
         final int len = Bytes.bytes2int(header, 12);
+        final int tt = len + HEADER_LENGTH;
+        if (readable < tt) {
+            return DubboRpcResponseDecoder.DecodeResult.NEED_MORE_INPUT;
+        }
         final byte[] data = new byte[len];
         byteBuf.readBytes(data);
 
@@ -75,8 +94,8 @@ public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
         request.setVersion("2.0.0");
         request.setTwoWay(true);
         request.setData(invocation);
+        request.setId(requestId);
         return request;
-
     }
 
 }

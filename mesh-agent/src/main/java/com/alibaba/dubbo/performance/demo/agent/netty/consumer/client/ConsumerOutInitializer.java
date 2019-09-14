@@ -7,7 +7,7 @@
 package com.alibaba.dubbo.performance.demo.agent.netty.consumer.client;
 
 import com.alibaba.dubbo.performance.demo.agent.dubbo.DubboRpcRequestEncoder;
-import io.netty.channel.Channel;
+import com.alibaba.dubbo.performance.demo.agent.dubbo.RpcResponseDecoder;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -17,16 +17,12 @@ import io.netty.channel.socket.SocketChannel;
  */
 public class ConsumerOutInitializer extends ChannelInitializer<SocketChannel> {
 
-    private final Channel serverChannel;
-
-    public ConsumerOutInitializer(final Channel serverChannel) {
-        this.serverChannel = serverChannel;
-    }
 
     @Override
     protected void initChannel(final SocketChannel ch) throws Exception {
         final ChannelPipeline pipeline = ch.pipeline();
         pipeline.addLast(new DubboRpcRequestEncoder());
-        pipeline.addLast(new ConsumerOutHandler(serverChannel));
+        pipeline.addLast(new RpcResponseDecoder());
+        pipeline.addLast(new ConsumerOutHandler());
     }
 }

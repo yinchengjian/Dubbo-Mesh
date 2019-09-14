@@ -10,30 +10,36 @@ import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.EventLoop;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author xinba
  */
 public class ProviderClient {
 
-    private final Channel serverChannel;
+    public static final Map<String, Channel> map = new HashMap<>();
 
-    private ChannelFuture channelFuture;
+    private final EventLoop eventLoop;
 
-    public ProviderClient(final Channel serverChannel) {
-        this.serverChannel = serverChannel;
+    private Channel channel;
+
+    public ProviderClient(final EventLoop eventLoop) {
+        this.eventLoop = eventLoop;
     }
 
-    public ChannelFuture getChannelFuture() {
-        return channelFuture;
+    public Channel getChannel() {
+        return channel;
     }
 
     public void connect(final Endpoint endpoint) {
         final Bootstrap bootstrap = new Bootstrap();
-        channelFuture = bootstrap.group(serverChannel.eventLoop())
+        channel = bootstrap.group(eventLoop)
                 .channel(NioSocketChannel.class)
-                .handler(new ProviderOutInitializer(serverChannel))
-                .connect(endpoint.getHost(), endpoint.getPort());
+                .handler(new ProviderOutInitializer())
+                .connect(endpoint.getHost(), endpoint.getPort()).channel();
     }
 }

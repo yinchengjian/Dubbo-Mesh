@@ -8,14 +8,18 @@ package com.alibaba.dubbo.performance.demo.agent.netty.consumer.server;
 
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.PriorityLoadBalance;
+import com.alibaba.dubbo.performance.demo.agent.netty.consumer.client.ConsumerClient;
 import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.registry.EtcdRegistry;
 import com.alibaba.dubbo.performance.demo.agent.registry.IRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.concurrent.EventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +46,16 @@ public class ConsumerServer {
         try {
             final List<Endpoint> endpoints = registry.find("com.alibaba.dubbo.performance.demo.provider.IHelloService");
             loadBalance.initEndpoints(endpoints);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+        initClient(workerLoopGroup);
+        try {
             serverBootstrap = new ServerBootstrap()
                     .group(bootLoopGroup, workerLoopGroup)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(port))
+                    .childOption(ChannelOption.TCP_NODELAY, true)
                     .childHandler(new ConsumerInitializer(loadBalance));
             logger.info("consumer agent start successfully");
             final ChannelFuture channelFuture = serverBootstrap.bind().sync();
@@ -55,6 +65,17 @@ public class ConsumerServer {
         } finally {
             bootLoopGroup.shutdownGracefully();
             workerLoopGroup.shutdownGracefully();
+        }
+    }
+
+    public void initClient(final EventLoopGroup eventLoopGroup) {
+        for (final EventExecutor eventExecutor : eventLoopGroup) {
+            if (eventExecutor instanceof EventLoop) {
+                final ConsumerClient consumerClient = new ConsumerClient((EventLoop) eventExecutor);
+                final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
+                consumerClient.connect(endpoint);
+                ConsumerClient.map.put(eventExecutor.toString(), consumerClient.getChannelFuture());
+            }
         }
     }
 }

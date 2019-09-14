@@ -4,7 +4,7 @@ package com.alibaba.dubbo.performance.demo.agent.dubbo.model;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Request {
-    private static AtomicLong atomicLong = new AtomicLong();
+    private static final AtomicLong atomicLong = new AtomicLong();
     private long id;
     private String interfaceName = "com.alibaba.dubbo.performance.demo.provider.IHelloService";
     private String methodName = "hash";
@@ -17,15 +17,14 @@ public class Request {
 
     private Object mData;
 
-    public Request(){
-        id = atomicLong.getAndIncrement();
+    public Request() {
     }
 
     public long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(final long id) {
         this.id = id;
     }
 
@@ -33,7 +32,7 @@ public class Request {
         return interfaceName;
     }
 
-    public void setInterfaceName(String interfaceName) {
+    public void setInterfaceName(final String interfaceName) {
         this.interfaceName = interfaceName;
     }
 
@@ -41,7 +40,7 @@ public class Request {
         return dubboVersion;
     }
 
-    public void setDubboVersion(String dubboVersion) {
+    public void setDubboVersion(final String dubboVersion) {
         this.dubboVersion = dubboVersion;
     }
 
@@ -49,7 +48,7 @@ public class Request {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -57,7 +56,7 @@ public class Request {
         return parameterTypesString;
     }
 
-    public void setParameterTypesString(String parameterTypesString) {
+    public void setParameterTypesString(final String parameterTypesString) {
         this.parameterTypesString = parameterTypesString;
     }
 
@@ -65,7 +64,7 @@ public class Request {
         return args;
     }
 
-    public void setArgs(Object[] args) {
+    public void setArgs(final Object[] args) {
         this.args = args;
     }
 
@@ -73,7 +72,7 @@ public class Request {
         return twoWay;
     }
 
-    public void setTwoWay(boolean twoWay) {
+    public void setTwoWay(final boolean twoWay) {
         this.twoWay = twoWay;
     }
 
@@ -81,7 +80,7 @@ public class Request {
         return event;
     }
 
-    public void setEvent(boolean event) {
+    public void setEvent(final boolean event) {
         this.event = event;
     }
 
@@ -89,7 +88,7 @@ public class Request {
         return methodName;
     }
 
-    public void setMethodName(String methodName) {
+    public void setMethodName(final String methodName) {
         this.methodName = methodName;
     }
 
@@ -97,7 +96,7 @@ public class Request {
         return mData;
     }
 
-    public void setData(Object msg) {
+    public void setData(final Object msg) {
         mData = msg;
     }
 

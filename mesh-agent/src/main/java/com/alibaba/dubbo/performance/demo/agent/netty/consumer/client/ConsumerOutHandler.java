@@ -6,6 +6,8 @@
 
 package com.alibaba.dubbo.performance.demo.agent.netty.consumer.client;
 
+import com.alibaba.dubbo.performance.demo.agent.dubbo.model.RpcResponse;
+import com.alibaba.dubbo.performance.demo.agent.netty.consumer.server.ConsumerHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -23,7 +25,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 /**
  * @author xinba
  */
-public class ConsumerOutHandler extends SimpleChannelInboundHandler<Object> {
+public class ConsumerOutHandler extends SimpleChannelInboundHandler<RpcResponse> {
 
     private static final AsciiString CONTENT_TYPE = AsciiString.cached("Content-Type");
     private static final AsciiString CONTENT_LENGTH = AsciiString.cached("Content-Length");
@@ -32,23 +34,22 @@ public class ConsumerOutHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Logger logger = LoggerFactory.getLogger(ConsumerOutHandler.class);
 
-    private final Channel serverChannel;
-
-    public ConsumerOutHandler(final Channel serverChannel) {
-        this.serverChannel = serverChannel;
-    }
-
     @Override
-    protected void channelRead0(final ChannelHandlerContext ctx, final Object msg) throws Exception {
+    protected void channelRead0(final ChannelHandlerContext ctx, final RpcResponse msg) throws Exception {
 
-        final ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuf) msg);
+        //todo 这里要对数据进行拆分
+        final ByteBuf byteBuf = Unpooled.copiedBuffer((msg.getBytes()));
         final FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, byteBuf);
         response.headers().set(CONTENT_TYPE, "text/plain");
         response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(CONNECTION, KEEP_ALIVE);
+        final Channel serverChannel = ConsumerHandler.channels.get().remove(msg.getRequestId());
+        if (serverChannel == null) {
+            return;
+        }
         serverChannel.writeAndFlush(response).addListener(future -> {
             if (future.isSuccess()) {
-                logger.info("consumer data sended successfully---ConsumerOutHandler");
+                logger.info("ConsumerServer---consumer data send successfully");
             } else {
                 future.cause().printStackTrace();
             }
