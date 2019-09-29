@@ -5,6 +5,7 @@
 
 package com.alibaba.dubbo.performance.demo.consumer;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.asynchttpclient.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -8,7 +8,7 @@ package com.alibaba.dubbo.performance.demo.agent.netty.consumer.client;
 
 import com.alibaba.dubbo.performance.demo.agent.registry.Endpoint;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
+import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
@@ -20,18 +20,18 @@ import java.util.Map;
  */
 public class ConsumerClient {
 
-    public static final Map<String, ChannelFuture> map = new HashMap<>();
+    public static final Map<String, Channel> map = new HashMap<>();
 
     private final EventLoop eventLoop;
 
-    private ChannelFuture channelFuture;
+    private Channel channel;
 
     public ConsumerClient(final EventLoop eventLoop) {
         this.eventLoop = eventLoop;
     }
 
-    public ChannelFuture getChannelFuture() {
-        return channelFuture;
+    public Channel getChannel() {
+        return channel;
     }
 
     public void connect(final Endpoint endpoint) {
@@ -39,6 +39,6 @@ public class ConsumerClient {
         bootstrap.group(eventLoop)
                 .channel(NioSocketChannel.class)
                 .handler(new ConsumerOutInitializer());
-        this.channelFuture = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
+        this.channel = bootstrap.connect(endpoint.getHost(), endpoint.getPort()).channel();
     }
 }

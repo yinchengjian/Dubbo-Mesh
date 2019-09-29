@@ -1,5 +1,5 @@
 /*
- * RpcResponseToFullHttpResponseDecoder.java
+ * RpcResponseToFullHttpResponseEecoder.java
  * Copyright 2019 Qunhe Tech, all rights reserved.
  * Qunhe PROPRIETARY/CONFIDENTIAL, any form of usage is subject to approval.
  */
@@ -23,7 +23,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 /**
  * @author xinba
  */
-public class RpcResponseToFullHttpResponseDecoder extends MessageToMessageEncoder<RpcResponse> {
+public class RpcResponseToFullHttpResponseEecoder extends MessageToMessageEncoder<RpcResponse> {
 
 
     private static final AsciiString CONTENT_TYPE = AsciiString.cached("Content-Type");

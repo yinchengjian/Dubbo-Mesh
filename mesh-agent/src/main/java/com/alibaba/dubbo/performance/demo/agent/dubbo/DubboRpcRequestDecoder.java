@@ -42,7 +42,7 @@ public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
                 final int savedReaderIndex = in.readerIndex();
                 Object msg = null;
                 try {
-                    System.err.println(ctx.channel().remoteAddress());
+                    logger.info("remoteAddress:{}", ctx.channel().remoteAddress());
                     msg = decode2(in);
                 } catch (final Exception e) {
                     System.err.println("decode error.");
@@ -82,7 +82,7 @@ public class DubboRpcRequestDecoder extends ByteToMessageDecoder {
 
         final byte[] subArray = Arrays.copyOfRange(data, 51, data.length - 4);
         final String s = new String(subArray);
-        System.err.println(s);
+        logger.info("message:{}", s);
 
 
         //todo decode bytes to object

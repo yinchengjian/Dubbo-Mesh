@@ -74,7 +74,7 @@ public class ConsumerServer {
                 final ConsumerClient consumerClient = new ConsumerClient((EventLoop) eventExecutor);
                 final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
                 consumerClient.connect(endpoint);
-                ConsumerClient.map.put(eventExecutor.toString(), consumerClient.getChannelFuture());
+                ConsumerClient.map.put(eventExecutor.toString(), consumerClient.getChannel());
             }
         }
     }

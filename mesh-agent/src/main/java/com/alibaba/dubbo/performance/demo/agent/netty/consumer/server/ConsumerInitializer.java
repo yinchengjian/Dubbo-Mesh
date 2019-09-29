@@ -6,6 +6,8 @@
 
 package com.alibaba.dubbo.performance.demo.agent.netty.consumer.server;
 
+import com.alibaba.dubbo.performance.demo.agent.dubbo.FullHttpRequestToRequestDecoder;
+import com.alibaba.dubbo.performance.demo.agent.dubbo.RpcResponseToFullHttpResponseEecoder;
 import com.alibaba.dubbo.performance.demo.agent.loadbalance.LoadBalance;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -29,9 +31,13 @@ public class ConsumerInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(final SocketChannel ch) throws Exception {
         final ChannelPipeline pipeline = ch.pipeline();
+        //出站
         pipeline.addLast(new HttpResponseEncoder());
+        pipeline.addLast(new RpcResponseToFullHttpResponseEecoder());
+        //进站
         pipeline.addLast(new HttpRequestDecoder());
         pipeline.addLast("aggregator", new HttpObjectAggregator(10 * 1024 * 1024));
+        pipeline.addLast(new FullHttpRequestToRequestDecoder());
         pipeline.addLast(new ConsumerHandler(loadBalance));
     }
 }

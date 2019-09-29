@@ -64,9 +64,8 @@ public class DubboRpcRequestEncoder extends MessageToByteEncoder {
         // write
         buffer.writerIndex(savedWriteIndex);
         buffer.writeBytes(header); // write header.
-        System.err.println(ctx.executor().toString());
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);
-        logger.info("request:{}", req);
+        logger.info("request:{}", req.getId());
     }
 
     public void encodeRequestData(final OutputStream out, final Object data) throws Exception {

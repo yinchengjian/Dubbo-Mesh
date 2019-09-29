@@ -24,6 +24,7 @@ public class ProviderOutHandler extends SimpleChannelInboundHandler<RpcResponse>
     @Override
     protected void channelRead0(final ChannelHandlerContext ctx, final RpcResponse msg) throws Exception {
         final Channel serverChannel = ProviderHandler.channels.get();
+        logger.info("channel:{}", serverChannel.toString());
         serverChannel.writeAndFlush(msg).addListener(future -> {
             if (future.isSuccess()) {
                 logger.info("ProviderServer---provider data send successfully");

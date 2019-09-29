@@ -21,7 +21,9 @@ public class ProviderOutInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(final SocketChannel ch) throws Exception {
         final ChannelPipeline pipeline = ch.pipeline();
+        //出站
         pipeline.addLast(new DubboRpcRequestEncoder());
+        //进站
         pipeline.addLast(new DubboRpcResponseDecoder());
         pipeline.addLast(new ProviderOutHandler());
     }
