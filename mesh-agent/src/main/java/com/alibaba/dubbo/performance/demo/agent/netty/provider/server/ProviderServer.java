@@ -49,7 +49,7 @@ public class ProviderServer {
             serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(bootEventLoop, workerEventLoop)
                     .channel(NioServerSocketChannel.class)
-                    .localAddress(new InetSocketAddress(30000))
+                    .localAddress(new InetSocketAddress(Integer.valueOf(System.getProperty("server.port"))))
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childHandler(new ProviderInitializer(loadBalance));
@@ -67,7 +67,7 @@ public class ProviderServer {
         for (final EventExecutor eventExecutor : eventLoopGroup) {
             if (eventExecutor instanceof EventLoop) {
                 final ProviderClient providerClient = new ProviderClient((EventLoop) eventExecutor);
-                final Endpoint endpoint = new Endpoint("127.0.0.1", 20889, 1);
+                final Endpoint endpoint = new Endpoint("127.0.0.1", Integer.valueOf(System.getProperty("dubbo.protocol.port")), 1);
                 providerClient.connect(endpoint);
                 ProviderClient.map.put(eventExecutor.toString(), providerClient.getChannel());
             }

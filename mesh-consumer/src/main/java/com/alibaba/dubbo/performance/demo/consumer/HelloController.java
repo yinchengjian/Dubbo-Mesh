@@ -31,8 +31,7 @@ public class HelloController {
 
     @RequestMapping({"/invoke"})
     public DeferredResult<ResponseEntity> invoke() {
-        //final String str = RandomStringUtils.random(this.r.nextInt(1024), true, true);
-        final String str = "2";
+        final String str = RandomStringUtils.random(this.r.nextInt(1024), true, true);
         final String url = "http://127.0.0.1:20000";
         final DeferredResult<ResponseEntity> result = new DeferredResult();
         final Request request = ((RequestBuilder) ((RequestBuilder) ((RequestBuilder) ((RequestBuilder) Dsl.post(url).addFormParam("interface", "com.alibaba.dubbo.performance.demo.provider.IHelloService")).addFormParam("method", "hash")).addFormParam("parameterTypesString", "Ljava/lang/String;")).addFormParam("parameter", str)).build();

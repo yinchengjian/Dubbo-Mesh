@@ -72,7 +72,7 @@ public class ConsumerServer {
         for (final EventExecutor eventExecutor : eventLoopGroup) {
             if (eventExecutor instanceof EventLoop) {
                 final ConsumerClient consumerClient = new ConsumerClient((EventLoop) eventExecutor);
-                final Endpoint endpoint = new Endpoint("127.0.0.1", 30000, 1);
+                final Endpoint endpoint = loadBalance.select();
                 consumerClient.connect(endpoint);
                 ConsumerClient.map.put(eventExecutor.toString(), consumerClient.getChannel());
             }
