@@ -1,54 +1,5 @@
 # 第四届阿里中间件性能挑战赛（初赛）
 
-## 更新记录
-
-### 【2018-05-17】Docker 容器以网桥形式启动
-
-出于安全性考虑，现将所有 Docker 容器以网桥的形式启动。
-
-在 benchmarker 脚本中，创建了一个名为 benchmarker 的网络，并分配地址段为 `10.10.10.0/24`，后续启动的 Docker 容器均在此网络内部运行。此番改动可以带来如下一些好处：
-
-1. etcd 服务以容器的形式启动，不需要在宿主机上再部署 etcd 服务了
-2. Docker 自定义网络有内建的 DNS 功能，因此容器之间可以通过 `etcd`、`consumer`、`provider-small`、`provider-medium` 和 `provider-large` 等域名的形式访问各个服务，不用再去寻找 `docker0` 网卡上的 IP 地址了
-3. nc/ncat 检测服务端口是否可用的逻辑也通过一个容器来完成，避免了 nc/ncat 命令不存在，或版本不兼容引发的问题
-4. 不需要将所有服务的端口都暴露给宿主机，只要将最终用于压测的 Consumer 服务的端口暴露出来可以了。避免引入大量不必要的端口，端口与文档可以保持较好的一致性，见下表：
-
-| 服务 | 容器主机名 | 端口 | 备注 |
-| ---- | ---- | ---- | ---- |
-| etcd | etcd | 2379 | |
-| Consumer | consumer | 8087 | 映射到宿主机的时候变为 80 |
-| Consumer Agent | consumer | 20000 | |
-| Provider Agent (small) | provider-small | 30000 | |
-| Provider Agent (medium) | provider-medium | 30000 | |
-| Provider Agent (large) | provider-large | 30000 | |
-| Provider (small) | provider-small | 20880 | |
-| Provider (medium) | provider-medium | 20880 | |
-| Provider (large) | provider-large | 20880 | |
-
-可能对现有 Agent 的实现产生的影响如下：
-
-1. 访问方式上的变化。以前是通过 `docker0` 网卡获取 IP 地址，现在可以直接使用域名
-2. 以前需要暴露的大量不同端口也尽量使用服务默认的端口
-3. 对服务注册和发现有一定的影响（这个主要取决于服务注册与发现功能实现的是否足够通用）
-4. Provider Agent 访问 Provider 的时候需要指定的连接信息发生了变化，如果是以配置文件的形式（就像 demo 那样）来实现的，则只需要修改配置信息即可
-5. `bootstrap_samples.conf` 文件修改了，需要替换原来的 `bootstrap.conf` 文件，并填充留空的字段
-
-### 【2018-05-15】Consumer 改为双异步
-
-使用了 Servlet 3.0 异步 API 和 AsyncHttpClient 对 Consumer 进行改造，大幅提升了 Consumer 的性能。
-
-## 〇、相关澄清（不定期更新）
-
-**1、关于宣传文章中“使用缓存”的澄清。**
-
-在宣传文章的第四章第 3 小节中说到：使用缓存。合理缓存响应结果，当相同的请求再次到来的时候，调用链可以不必经过系统中的每一个节点，从而尽快返回。
-
-这里澄清一下缓存使用的范围：
-
-1. 可以缓存 etcd 注册中心里的数据，及其他配置数据
-2. 不可以对请求的数据流进行缓存
-3. 不可以对返回结果进行缓存
-
 ## 一、赛题背景
 
 ### 1.1、Apache Dubbo (incubating) 简介
